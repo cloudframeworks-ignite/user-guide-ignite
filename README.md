@@ -14,7 +14,7 @@ Ignite具有持久性、一致性、高可用等主要特点，同时具备强�
 * 数据库负载
 * 查询性能
 
-本篇云框架结合实战经验，在[Spring Petclinic](https://github.com/spring-projects/spring-petclinic)（宠物医院应用）基础上进行“Ignite化”改造，并围绕此业务实例介绍Apache Ignite及其落地的最佳实践。
+本篇云框架结合实战经验，在[Spring Petclinic](https://github.com/spring-projects/spring-petclinic)（宠物医院）基础上进行“微服务架构”和“Ignite化”改造，并围绕此业务实例介绍Apache Ignite及其落地的最佳实践。
 
 相关云框架：[[云框架]SMACK大数据架构](https://github.com/cloudframeworks-smack/user-guide-smack)
 
@@ -61,9 +61,13 @@ Ignite具有持久性、一致性、高可用等主要特点，同时具备强�
 
 # <a name="框架说明-业务"></a>框架说明-业务
 
-Spring Petclinic可完成宠物主人（Owner）、宠物（Vet）、到访（Visit）的注册／添加、查询、编辑。
+Spring Petclinic可完成宠物主人（Owner）、宠物（Vet）、到访（Visit）的注册／添加、查询、编辑等。
 
-查看界面截图：
+查看截图：
+
+[主页](https://github.com/cloudframeworks-ignite/user-guide-ignite/blob/master/image/petclinic-homepage.png) ／ [查询所有信息](https://github.com/cloudframeworks-ignite/user-guide-ignite/blob/master/image/all-owners.png) ／ [注册宠物主人](https://github.com/cloudframeworks-ignite/user-guide-ignite/blob/master/image/add-owners.png) ／ [添加宠物](https://github.com/cloudframeworks-ignite/user-guide-ignite/blob/master/image/add-pets.png) ／ [编辑](https://github.com/cloudframeworks-ignite/user-guide-ignite/blob/master/image/pets-visits.png)
+
+业务架构如下：
 
 
 
