@@ -6,7 +6,7 @@
     docker run -d -e MYSQL_ROOT_PASSWORD=root --name=mysql mysql:5.7
     ```
 
-2. 导入[数据]()
+2. 导入[数据](https://github.com/cloudframeworks-ignite/user-guide-ignite/tree/master/db)
 
 3. 部署iginite-config
 
