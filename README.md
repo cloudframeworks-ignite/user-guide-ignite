@@ -60,10 +60,20 @@ macOS Sierra 版本 10.12.6
 2. 克隆完整代码
 
    ```
-   git clone xx
+   git clone https://github.com/cloudframeworks-ignite/user-guide-ignite
    ```
 
-3. 安装mysql
+3. 使用[docker-compose](https://docs.docker.com/compose/install/)运行如下命令（或查看[分步部署](https://github.com/cloudframeworks-ignite/user-guide-ignite/blob/master/READMORE/deploy-by-steps.md)）
+
+    ```
+    docker-compose -f docker-compose.yml up -d
+    ```
+
+4. 访问
+
+    ```
+    http://127.0.0.1:8080
+    ```
 
 # <a name="业务说明"></a>业务说明
 
@@ -81,28 +91,41 @@ Spring Petclinic可完成宠物主人（Owner）、宠物（Vet）、到访（Vi
 * 可为Owners添加Pets或修改Pets信息
 * 可为Pets增加Visits
 * User可查看所有Veterinarians
+* Owners与Visits相互依赖
 
 # <a name="技术说明"></a>技术说明
 
+Apache Ignite将分布式SQL数据库功能作为其平台的一部分，水平可扩展性、容错且符合ANSI ANSI 99标准，支持所有SQL和DML命令，包括SELECT、UPDATE、INSERT、MERGE和DELETE查询，同时为与分布式数据库相关的DDL命令的一个子集提供支持。
 
+得益于固化内存架构，数据集和索引可以存储在RAM和磁盘上，意味着我们可以跨越不同的存储层执行分布式的SQL操作，使得在支持将数据固化到磁盘的前提下获得内存级的性能。
+
+Apache Ignite提供语言层面的跨平台连接性，我们与Apche Ignite的交互不仅可以通过面向Java、.NET和C++的原生API，还已通过JDBC或ODBC API。
+
+Ignite 分布式SQL数据库：
+
+<div align=center><img width="900" height="" src="./image/sql_database.png"/></div>
+
+原项目中Customer、Visits、Vets直接连接MySQL，而经过改造后，将通过Ignite进行交互，如下图所示：
 
 <div align=center><img width="900" height="" src="./image/ignite-components-architecture.png"/></div>
 
+图中灰色连线代表服务依赖关系，蓝色连线代表服务调用关系。
 
+（添加改动及代码链接）
 
-# <a name="如何变成自己的项目"></a>如何变成自己的项目 
+# <a name="如何变成自己的项目"></a>如何变成自己的项目
 
-
+（添加）
 
 # <a name="更新计划"></a>更新计划
 
-* `README` 集群测试
+* `README` 集群环境下性能测试
 
 点击查看[历史更新](CHANGELOG.md)
 
 # <a name="社群贡献"></a>社群贡献
 
-+ QQ群: 
++ QQ群: 532843906
 + [参与贡献](CONTRIBUTING.md)
 + [联系我们](mailto:info@goodrain.com)
 
