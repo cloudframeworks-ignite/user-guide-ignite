@@ -1,0 +1,15 @@
+spring:
+  cloud:
+    config:
+      uri: http://config:8888
+  application:
+    name: discovery-server
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    registerWithEureka: false
+    fetchRegistry: false
+    server:
+      waitTimeInMsWhenSyncEmpty: 0
