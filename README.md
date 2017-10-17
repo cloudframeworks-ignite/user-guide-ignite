@@ -116,6 +116,314 @@ Ignite 分布式SQL数据库：
 # <a name="如何变成自己的项目"></a>如何变成自己的项目
 
 （添加）
+# <a name="核心代码"></a>核心代码
+    * CacheJdbcOwnerStore:Owner对象ignite cache
+
+    public class CacheJdbcOwnerStore extends CacheStoreAdapter<Long, Owner> {
+
+    @CacheStoreSessionResource
+    private CacheStoreSession ses;
+    
+    //从mysql中load数据到iginte
+    @Override
+    public Owner load(Long key) {
+        System.out.println(">>> Store load [key=" + key + ']');
+        try (Connection conn = connection()) {
+            try (PreparedStatement st = conn
+                    .prepareStatement("select * from owners where id = ?")) {
+                st.setString(1, key.toString());
+
+                ResultSet rs = st.executeQuery();
+
+                return rs.next() ? new Owner(rs.getInt(1), rs.getString(2),
+                        rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6)) : null;
+            } catch (SQLException e) {
+                throw new CacheLoaderException("Failed to load object [key="
+                        + key + ']', e);
+            }
+        }catch (SQLException e) {
+              throw new CacheLoaderException("Failed to load: " + key, e);
+        }
+    }
+
+    //ignite 同步数据到mysql
+    @Override
+    public void write(Cache.Entry<? extends Long, ? extends Owner> entry) {
+        Long key = entry.getKey();
+        Owner val = entry.getValue();
+
+        System.out
+                .println(">>> Store write [key=" + key + ", val=" + val + ']');
+
+        try {
+            Connection conn = connection();
+            int updated;
+            try (PreparedStatement st = conn
+                    .prepareStatement("update owners set first_name = ?,last_name=?,address=?,city=?,telephone=? where id = ?")) {
+                st.setString(1, val.firstName);
+                st.setString(2, val.lastName);
+                st.setString(3, val.address);
+                st.setString(4, val.city);
+                st.setString(5, val.telephone);
+                st.setLong(6, val.id);
+
+                updated = st.executeUpdate();
+            }
+            if (updated == 0) {
+                try (PreparedStatement st = conn
+                        .prepareStatement("insert into owners (id, first_name, last_name, address, city, telephone) values (?, ?, ?, ?,?,?)")) {
+                    st.setLong(1, val.id);
+                    st.setString(2, val.firstName);
+                    st.setString(3, val.lastName);
+                    st.setString(4, val.address);
+                    st.setString(5, val.city);
+                    st.setString(6, val.telephone);
+                    st.executeUpdate();
+                }
+            }
+            
+            
+        } catch (SQLException e) {
+            throw new CacheWriterException("Failed to write object [key=" + key
+                    + ", val=" + val + ']', e);
+        }
+    }
+    
+    //ignite 删除数据，同时删掉mysql数据
+    @Override
+    public void delete(Object key) {
+        System.out.println(">>> Store delete [key=" + key + ']');
+        try (Connection conn = connection()) {
+            try (PreparedStatement st = conn
+                    .prepareStatement("delete from owners where id=?")) {
+                st.setLong(1, (Long) key);
+
+                st.executeUpdate();
+            } catch (SQLException e) {
+                throw new CacheWriterException("Failed to delete object [key="
+                        + key + ']', e);
+            }
+        }catch (SQLException e) {
+              throw new CacheLoaderException("Failed to load: " + key, e);
+        }
+    }
+
+    @Override
+    public void loadCache(IgniteBiInClosure<Long, Owner> clo, Object... objects) {
+
+        try (Connection conn = connection()) {
+            try (PreparedStatement stmt = conn
+                    .prepareStatement("select * from owners")) {
+                ResultSet rs = stmt.executeQuery();
+                int cnt = 0;
+                while (rs.next()) {
+                    Owner owner = new Owner(rs.getInt(1), rs.getString(2),
+                            rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6));
+                    clo.apply(owner.id, owner);
+                    cnt++;
+                }
+                System.out.println(">>> Loaded " + cnt + " values into cache.");
+            } catch (SQLException e) {
+                throw new CacheLoaderException(
+                        "Failed to load values from cache store.", e);
+            }
+        }catch (SQLException e) {
+              throw new CacheLoaderException("Failed to load: ", e);
+        }
+    }
+
+    private Connection connection() throws SQLException {
+        Connection conn = DriverManager.getConnection(
+                "jdbc:mysql://mysql:3306/petclinic", "root", "root");
+
+        conn.setAutoCommit(true);
+
+        return conn;
+    }
+    }
+# <a name="核心代码"></a>核心代码
+
+    *SpringConfig--- ignite spring 加载
+
+    @Configuration
+    @EnableIgniteRepositories
+    public class SpringConfig {
+
+    private final Ignite ignite = Ignition.start("ignite.xml");
+
+    @Bean
+    @ConditionalOnClass(name = "org.apache.ignite.Ignite")
+    public Ignite getIgnite() {
+        return ignite;
+    }
+    
+    //owner对象cache
+    @Bean
+    public IgniteCache<Long, Owner> getOwnerCache() {
+        CacheConfiguration<Long, Owner> ownerCache = new CacheConfiguration<>("OwnerCache");
+        ownerCache.setCacheMode(CacheMode.REPLICATED);
+        ownerCache.setIndexedTypes(Long.class, Owner.class);
+        ownerCache.setCacheStoreFactory(FactoryBuilder.factoryOf(CacheJdbcOwnerStore.class));
+        ownerCache.setReadThrough(true);
+        ownerCache.setWriteThrough(true);
+        IgniteCache<Long, Owner> cache =ignite.getOrCreateCache(ownerCache);
+        cache.loadCache(null);
+        return cache;
+    }
+    
+    //pet对象cache
+    @Bean
+    public IgniteCache<Long, Pet> getPetCache() {
+        CacheConfiguration<Long, Pet> petCache = new CacheConfiguration<>("PetCache");
+        petCache.setCacheMode(CacheMode.REPLICATED);
+        petCache.setIndexedTypes(Long.class, Pet.class);
+        petCache.setCacheStoreFactory(FactoryBuilder.factoryOf(CacheJdbcPetStore.class));
+        petCache.setReadThrough(true);
+        petCache.setWriteThrough(true);
+        IgniteCache<Long, Pet> cache =ignite.getOrCreateCache(petCache);
+        cache.loadCache(null);
+        return cache;
+    }
+    
+    //pettype对象cache
+    @Bean
+    public IgniteCache<Long, PetType> getPetTypeCache() {
+        CacheConfiguration<Long, PetType> petTypeCache = new CacheConfiguration<>("PetTypeCache");
+        petTypeCache.setCacheMode(CacheMode.REPLICATED);
+        petTypeCache.setIndexedTypes(Long.class, PetType.class);
+        petTypeCache.setCacheStoreFactory(FactoryBuilder.factoryOf(CacheJdbcPetTypeStore.class));
+        petTypeCache.setReadThrough(true);
+        petTypeCache.setWriteThrough(true);
+        IgniteCache<Long, PetType> cache =ignite.getOrCreateCache(petTypeCache);
+        cache.loadCache(null);
+        return cache;
+    }
+    }
+
+    * CacheJdbcOwnerStore:Owner对象ignite cache
+
+    public class CacheJdbcOwnerStore extends CacheStoreAdapter<Long, Owner> {
+
+    @CacheStoreSessionResource
+    private CacheStoreSession ses;
+    
+    //从mysql中load数据到iginte
+    @Override
+    public Owner load(Long key) {
+        System.out.println(">>> Store load [key=" + key + ']');
+        try (Connection conn = connection()) {
+            try (PreparedStatement st = conn
+                    .prepareStatement("select * from owners where id = ?")) {
+                st.setString(1, key.toString());
+
+                ResultSet rs = st.executeQuery();
+
+                return rs.next() ? new Owner(rs.getInt(1), rs.getString(2),
+                        rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6)) : null;
+            } catch (SQLException e) {
+                throw new CacheLoaderException("Failed to load object [key="
+                        + key + ']', e);
+            }
+        }catch (SQLException e) {
+              throw new CacheLoaderException("Failed to load: " + key, e);
+        }
+    }
+
+    //ignite 同步数据到mysql
+    @Override
+    public void write(Cache.Entry<? extends Long, ? extends Owner> entry) {
+        Long key = entry.getKey();
+        Owner val = entry.getValue();
+
+        System.out
+                .println(">>> Store write [key=" + key + ", val=" + val + ']');
+
+        try {
+            Connection conn = connection();
+            int updated;
+            try (PreparedStatement st = conn
+                    .prepareStatement("update owners set first_name = ?,last_name=?,address=?,city=?,telephone=? where id = ?")) {
+                st.setString(1, val.firstName);
+                st.setString(2, val.lastName);
+                st.setString(3, val.address);
+                st.setString(4, val.city);
+                st.setString(5, val.telephone);
+                st.setLong(6, val.id);
+
+                updated = st.executeUpdate();
+            }
+            if (updated == 0) {
+                try (PreparedStatement st = conn
+                        .prepareStatement("insert into owners (id, first_name, last_name, address, city, telephone) values (?, ?, ?, ?,?,?)")) {
+                    st.setLong(1, val.id);
+                    st.setString(2, val.firstName);
+                    st.setString(3, val.lastName);
+                    st.setString(4, val.address);
+                    st.setString(5, val.city);
+                    st.setString(6, val.telephone);
+                    st.executeUpdate();
+                }
+            }
+            
+            
+        } catch (SQLException e) {
+            throw new CacheWriterException("Failed to write object [key=" + key
+                    + ", val=" + val + ']', e);
+        }
+    }
+    
+    //ignite 删除数据，同时删掉mysql数据
+    @Override
+    public void delete(Object key) {
+        System.out.println(">>> Store delete [key=" + key + ']');
+        try (Connection conn = connection()) {
+            try (PreparedStatement st = conn
+                    .prepareStatement("delete from owners where id=?")) {
+                st.setLong(1, (Long) key);
+
+                st.executeUpdate();
+            } catch (SQLException e) {
+                throw new CacheWriterException("Failed to delete object [key="
+                        + key + ']', e);
+            }
+        }catch (SQLException e) {
+              throw new CacheLoaderException("Failed to load: " + key, e);
+        }
+    }
+
+    @Override
+    public void loadCache(IgniteBiInClosure<Long, Owner> clo, Object... objects) {
+
+        try (Connection conn = connection()) {
+            try (PreparedStatement stmt = conn
+                    .prepareStatement("select * from owners")) {
+                ResultSet rs = stmt.executeQuery();
+                int cnt = 0;
+                while (rs.next()) {
+                    Owner owner = new Owner(rs.getInt(1), rs.getString(2),
+                            rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6));
+                    clo.apply(owner.id, owner);
+                    cnt++;
+                }
+                System.out.println(">>> Loaded " + cnt + " values into cache.");
+            } catch (SQLException e) {
+                throw new CacheLoaderException(
+                        "Failed to load values from cache store.", e);
+            }
+        }catch (SQLException e) {
+              throw new CacheLoaderException("Failed to load: ", e);
+        }
+    }
+
+    private Connection connection() throws SQLException {
+        Connection conn = DriverManager.getConnection(
+                "jdbc:mysql://mysql:3306/petclinic", "root", "root");
+
+        conn.setAutoCommit(true);
+
+        return conn;
+    }
+    }
 
 # <a name="更新计划"></a>更新计划
 
