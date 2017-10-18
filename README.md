@@ -26,7 +26,8 @@ Ignite具有持久性、一致性、高可用等主要特点，同时具备强�
     * [本地部署](#本地部署)
 * [业务说明](#业务说明)
 * [技术说明](#技术说明)
-* [如何变成自己的项目](#如何变成自己的项目)
+    * [核心代码 - 整合Spring Cloud](#整合springcloud)
+    * [核心代码 - 整合MySQL](#整合mysql)
 * [更新计划](#更新计划)
 * [社群贡献](#社群贡献)
 
@@ -101,8 +102,6 @@ Apache Ignite将分布式SQL数据库功能作为其平台的一部分，水平�
 
 Apache Ignite提供语言层面的跨平台连接性，我们与Apche Ignite的交互不仅可以通过面向Java、.NET和C++的原生API，还已通过JDBC或ODBC API。
 
-Ignite 分布式SQL数据库：
-
 <div align=center><img width="900" height="" src="./image/sql_database.png"/></div>
 
 原项目中Customer、Visits、Vets直接连接MySQL，而经过改造后，将通过Ignite进行交互，如下图所示：
@@ -113,10 +112,8 @@ Ignite 分布式SQL数据库：
 
 （添加改动及代码链接）
 
-# <a name="如何变成自己的项目"></a>如何变成自己的项目
+## <a name="整合springcloud"></a>核心代码 - 整合Spring Cloud
 
-（添加）
-# <a name="核心代码"></a>核心代码
     * CacheJdbcOwnerStore:Owner对象ignite cache
 
     public class CacheJdbcOwnerStore extends CacheStoreAdapter<Long, Owner> {
@@ -241,7 +238,8 @@ Ignite 分布式SQL数据库：
         return conn;
     }
     }
-# <a name="核心代码"></a>核心代码
+    
+## <a name="整合mysql"></a>核心代码 - 整合MySQL
 
     *SpringConfig--- ignite spring 加载
 
