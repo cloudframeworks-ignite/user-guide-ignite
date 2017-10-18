@@ -110,8 +110,6 @@ Apache Ignite提供语言层面的跨平台连接性，我们与Apche Ignite的�
 
 图中灰色连线代表服务依赖关系，蓝色连线代表服务调用关系。
 
-（添加改动及代码链接）
-
 ## <a name="整合springcloud"></a>核心代码 - 整合Spring Cloud
 
     * CacheJdbcOwnerStore:Owner对象ignite cache
