@@ -6,7 +6,27 @@
     docker run -d -e MYSQL_ROOT_PASSWORD=root --name=mysql mysql:5.7
     ```
 
-2. 导入[数据](https://github.com/cloudframeworks-ignite/user-guide-ignite/tree/master/db)
+2. 导入[数据](https://github.com/cloudframeworks-ignite/user-guide-ignite/tree/master/db)，执行以下命令
+
+    ```
+docker cp db mysql:/root
+ docker exec -it mysql bash 
+ for mm in `ls db`; do mysql -u root -proot < /root/db/${mm}/schema.sql ; mysql -u root -proot < /root/db/${mm}/data.sql ; done
+    ```
+
+    ```
+docker cp db mysql:/root
+ docker exec -it mysql bash 
+ for mm in `ls db`; do mysql -u root -proot < /root/db/${mm}/schema.sql ; mysql -u root -proot < /root/db/${mm}/data.sql ; done
+    ```
+
+    ```
+    docker cp db mysql:/root
+
+    docker exec -it mysql bash 
+
+    for mm in `ls db`; do mysql -u root -proot < /root/db/${mm}/schema.sql ; mysql -u root -proot < /root/db/${mm}/data.sql ; done
+    ```
 
 3. 部署iginite-config
 
